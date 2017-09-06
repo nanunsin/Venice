@@ -1,6 +1,9 @@
 package main
 
-import "sync"
+import (
+	"container/ring"
+	"sync"
+)
 
 type LimitList struct {
 	count    int
@@ -69,4 +72,44 @@ func (lst *LimitList) resize() {
 		lst.items = temp
 		lst.count = lst.fix - 1
 	}
+}
+
+type RQueue struct {
+	queue     *ring.Ring
+	size, cnt int
+}
+
+func NewRQueue(size int) *RQueue {
+	instance := &RQueue{
+		queue: ring.New(size),
+		size:  size,
+		cnt:   0,
+	}
+
+	return instance
+}
+
+func (rq *RQueue) AddInfo(data float64) {
+	rq.queue.Value = data
+	rq.queue = rq.queue.Next()
+	if rq.size > rq.cnt {
+		rq.cnt++
+	}
+}
+
+func (rq *RQueue) Len() int {
+	return rq.cnt
+}
+
+func (rq *RQueue) Avg() (float64, bool) {
+	if rq.size != rq.cnt {
+		return 0.0, false
+	}
+
+	sum := 0.0
+	rq.queue.Do(func(x interface{}) {
+		sum += x.(float64)
+	})
+
+	return sum / (float64)(rq.size), true
 }

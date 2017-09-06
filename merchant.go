@@ -27,15 +27,35 @@ func sumArray(arr []interface{}, div int) (ret float64) {
 }
 
 func main() {
+	eth := NewEthory()
+	chPrice := make(chan float64)
+	chStop := make(chan bool)
+
+	eye := NewHawkEye(chPrice)
+	bContinue := true
+
+	go eye.Scout()
+	go func() {
+		stop := time.NewTimer(time.Minute * 10)
+		<-stop.C
+		eye.Stop()
+		chStop <- true
+	}()
+
+	for bContinue {
+		select {
+		case <-chStop:
+			bContinue = false
+		case price := <-chPrice:
+			eth.AddInfo(price)
+			eth.Print()
+		}
+	}
+
+}
+
+func main2() {
 	fmt.Println("Start")
-
-	/*
-		bit := bithumb.NewBithumb("test", "sec")
-
-		average9 := ring.New(10)
-		average25 := ring.New(26)
-		averageMACD := ring.New(9)
-	*/
 
 	chStop := make(chan bool)
 
