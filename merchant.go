@@ -36,8 +36,13 @@ func main() {
 
 	go eye.Scout()
 	go func() {
-		stop := time.NewTimer(time.Minute * 10)
-		<-stop.C
+		userInput := bufio.NewScanner(os.Stdin)
+		for userInput.Scan() {
+			inputData := userInput.Text()
+			if "exit" == inputData {
+				break
+			}
+		}
 		eye.Stop()
 		chStop <- true
 	}()

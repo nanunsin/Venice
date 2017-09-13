@@ -54,9 +54,11 @@ func (e *Ethory) AddInfo(data float64) {
 
 	e.signal, _ = e.sig.Avg()
 	phisto := e.histo
-	e.histo = e.signal - e.macd
+	e.histo = e.macd - e.signal
 
 	e.curve = e.histo - phisto
+
+	fmt.Printf("[%.f] ", data)
 
 }
 
@@ -75,7 +77,7 @@ func (e *Ethory) MACDSignal() (float64, bool) {
 func (e *Ethory) Print() {
 	if e.bMACD {
 		if e.bSignal {
-			fmt.Printf("MACD: %.3f, Signal : %.3f, Histo: %3.f, C:%.3f\n", e.macd, e.signal, e.histo, e.curve)
+			fmt.Printf("MACD: %.3f, Signal : %.3f, Histo: %.3f, C:%.3f\n", e.macd, e.signal, e.histo, e.curve)
 		} else {
 			fmt.Printf("MACD: %.3f, Signal : %.3f,\n", e.macd, e.signal)
 		}
