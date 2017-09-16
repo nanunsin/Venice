@@ -1,144 +1,197 @@
-package main
+package venice
 
 import (
 	"fmt"
-	"time"
+	"math"
 
+	"github.com/fatih/color"
 	"github.com/nanunsin/bithumbb/bithumb"
 )
 
-type Ethory struct {
-	s, l, sig      *RQueue
-	histo          float64
-	macd, signal   float64
-	curve          float64
-	bMACD, bSignal bool
+type MACD struct {
+	macd, signal, histo, curve float64
+	price                      float64
 }
 
-func NewEthory() *Ethory {
-	instance := &Ethory{
+type Bitory struct {
+	s, l, sig      *RQueue
+	data           MACD
+	curve          float64
+	bMACD, bSignal bool
+	thinker        *Thinker
+}
+
+func NewBitory() *Bitory {
+	instance := &Bitory{
 		s:       NewRQueue(10),
 		l:       NewRQueue(26),
 		sig:     NewRQueue(9),
 		bMACD:   false,
 		bSignal: false,
+		thinker: NewThinker(),
 	}
 	return instance
 }
 
-func (e *Ethory) AddInfo(data float64) {
-	e.s.AddInfo(data)
-	e.l.AddInfo(data)
+func (b *Bitory) AddInfo(data float64) {
+	b.s.AddInfo(data)
+	b.l.AddInfo(data)
 
-	if !e.bMACD {
-		if e.l.Len() >= 26 {
-			e.bMACD = true
+	if !b.bMACD {
+		if b.l.Len() >= 26 {
+			b.bMACD = true
 		} else {
 			return
 		}
 	}
-	rs, _ := e.MACD10()
-	rl, _ := e.MACD26()
+	rs, _ := b.MACD10()
+	rl, _ := b.MACD26()
 
-	e.macd = rs - rl
+	b.data.macd = rs - rl
 
-	e.sig.AddInfo(e.macd)
+	b.sig.AddInfo(b.data.macd)
 
-	if !e.bSignal {
-		if e.sig.Len() >= 9 {
-			e.bSignal = true
+	if !b.bSignal {
+		if b.sig.Len() >= 9 {
+			b.bSignal = true
 		} else {
 			return
 		}
 	}
 
-	e.signal, _ = e.sig.Avg()
-	phisto := e.histo
-	e.histo = e.macd - e.signal
+	b.data.signal, _ = b.sig.Avg()
+	phisto := b.data.histo
+	b.data.histo = b.data.macd - b.data.signal
+	b.data.price = data
 
-	e.curve = e.histo - phisto
+	b.curve = b.data.histo - phisto
+	b.data.curve = b.curve
 
 	fmt.Printf("[%.f] ", data)
 
 }
 
-func (e *Ethory) MACD10() (float64, bool) {
-	return e.s.Avg()
+func (b *Bitory) MACD10() (float64, bool) {
+	return b.s.Avg()
 }
 
-func (e *Ethory) MACD26() (float64, bool) {
-	return e.l.Avg()
+func (b *Bitory) MACD26() (float64, bool) {
+	return b.l.Avg()
 }
 
-func (e *Ethory) MACDSignal() (float64, bool) {
-	return e.sig.Avg()
+func (b *Bitory) MACDSignal() (float64, bool) {
+	return b.sig.Avg()
 }
 
-func (e *Ethory) Print() {
-	if e.bMACD {
-		if e.bSignal {
-			fmt.Printf("MACD: %.3f, Signal : %.3f, Histo: %.3f, C:%.3f\n", e.macd, e.signal, e.histo, e.curve)
+func (b *Bitory) Print() {
+	if b.bMACD {
+		if b.bSignal {
+			fmt.Printf("MACD: %.3f, Signal : %.3f, Histo: %.3f, C:%.3f\n", b.data.macd, b.data.signal, b.data.histo, b.curve)
+			b.thinker.Add(b.data)
 		} else {
-			fmt.Printf("MACD: %.3f, Signal : %.3f,\n", e.macd, e.signal)
+			fmt.Printf("MACD: %.3f, Signal : %.3f,\n", b.data.macd, b.data.signal)
 		}
 	}
 }
 
-type Bitory struct {
-	list   *LimitList
-	chStop chan bool
+type Thinker struct {
+	oldMACD MACD
+	bStart  bool
+	bBuy    bool
+	bit     *bithumb.Bithumb
 }
 
-func NewBitory() *Bitory {
-	instance := &Bitory{}
-	instance.list = NewLimitList(200)
-	instance.chStop = make(chan bool)
-
-	return instance
+func NewThinker() *Thinker {
+	var apikey = "fd8871256b116a150f9ef1390f909105"
+	var apisecret = "2605ae4bcd5d9c2cb43b2341d68b0909"
+	return &Thinker{
+		bStart: false,
+		bit:    bithumb.NewBithumb(apikey, apisecret),
+	}
 }
 
-func (b *Bitory) Run() {
-	var info bithumb.WMP
-	bContinue := true
+func (th *Thinker) Add(data MACD) {
+	if !th.bStart {
+		th.bStart = true
+	} else {
 
-	bit := bithumb.NewBithumb("test", "sec")
-	bit.GetETHPrice(&info)
-	b.list.Push(info.Price)
-	ticker := time.NewTicker(time.Second * 10)
-
-	for bContinue {
-		select {
-		case <-ticker.C:
-			bit.GetETHPrice(&info)
-			b.list.Push(info.Price)
-
-		case <-b.chStop:
-			fmt.Println("stop")
-			bContinue = false
+		difMACD := data.macd - th.oldMACD.macd       // MACD 기울기
+		difSignal := data.signal - th.oldMACD.signal // Signal 기울기
+		bonus := 50
+		if math.Abs(data.curve) > 100 {
+			bonus += 50
 		}
-	}
-}
+		/*
+			color.New(color.FgBlue).Printf("%.3f\t", difMACD)
+			color.New(color.FgCyan).Printf("%.3f\t", difSignal)
 
-func (b *Bitory) Stop() {
-	b.chStop <- true
-}
+			if data.histo > 0 {
+				if data.curve < -100 && th.oldMACD.curve < -100 {
+					if th.bBuy {
+						fmt.Printf("Sell, %.f\n", data.price)
+						th.bit.SellPlaceETH(int(data.price)-bonus, 0.1)
+						th.bBuy = false
+					}
+				} else {
+					if !th.bBuy {
+						fmt.Printf("Buy, %.f\n", data.price)
+						th.bit.BuyPlaceETH(int(data.price)+bonus, 0.1)
+						th.bBuy = true
+					}
+				}
 
-func (b *Bitory) SumArray(div int) (ret float64) {
-	ret = 0.0
-	if div == 0 {
-		return
+			} else {
+				if data.curve > 100 && th.oldMACD.curve > 100 {
+					if !th.bBuy {
+						fmt.Printf("Buy, %.f\n", data.price)
+						th.bit.BuyPlaceETH(int(data.price)+bonus, 0.1)
+						th.bBuy = true
+					}
+				} else {
+					if th.bBuy {
+						fmt.Printf("Sell, %.f\n", data.price)
+						th.bit.SellPlaceETH(int(data.price)-bonus, 0.1)
+						th.bBuy = false
+					}
+				}
+			}
+		*/
+
+		if data.curve < -100 && th.oldMACD.curve < -100 {
+			if th.bBuy {
+				fmt.Printf("Sell, %.f\n", data.price)
+				th.bit.SellPlaceETH(int(data.price)-bonus, 0.1)
+				th.bBuy = false
+			}
+		} else if data.curve > 100 && th.oldMACD.curve > 100 {
+			if !th.bBuy {
+				fmt.Printf("Buy, %.f\n", data.price)
+				th.bit.BuyPlaceETH(int(data.price)+bonus, 0.1)
+				th.bBuy = true
+			}
+		} else {
+			if difMACD > difSignal {
+				color.New(color.FgRed).Println("Good")
+				if difSignal > 0 { // 시그널이 증가 상태
+					if !th.bBuy {
+						fmt.Printf("Buy, %.f\n", data.price)
+						th.bit.BuyPlaceETH(int(data.price)+bonus, 0.1)
+						th.bBuy = true
+					}
+				}
+			} else {
+				color.New(color.FgGreen).Println("Bad")
+				if data.histo < 0 {
+					if th.bBuy {
+						fmt.Printf("Sell, %.f\n", data.price)
+						th.bit.SellPlaceETH(int(data.price)-bonus, 0.1)
+						th.bBuy = false
+					}
+				}
+			}
+		}
+
 	}
 
-	data := b.list.ToSlice()
-	dataLen := len(data)
-	if div > dataLen {
-		fmt.Printf("Len : %d", dataLen)
-		return
-	}
-
-	for _, d := range data[dataLen-div:] {
-		ret += d.(float64)
-	}
-	ret /= (float64)(div)
-	return
+	th.oldMACD = data
 }
