@@ -96,7 +96,6 @@ func (b *Bitory) Print() {
 }
 
 func (b *Bitory) Process() {
-	fmt.Println("Process!")
 	if b.bMACD && b.bSignal && b.bCore {
 		b.core.Update(b.data)
 	}
