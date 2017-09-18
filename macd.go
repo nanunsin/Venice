@@ -2,18 +2,21 @@ package venice
 
 import "fmt"
 
-type MACD struct {
-	macd, signal, histo, curve float64
-	Price                      float64
+type MACDInfo struct {
+	MACD   float64
+	Signal float64
+	Histo  float64
+	Curve  float64
+	Price  float64
 }
 
 type Jarvis interface {
-	Update(data MACD)
+	Update(data MACDInfo)
 }
 
 type Bitory struct {
 	s, l, sig      *RQueue
-	data           MACD
+	data           MACDInfo
 	curve          float64
 	bMACD, bSignal bool
 	// merchant
@@ -47,9 +50,9 @@ func (b *Bitory) AddInfo(data float64) {
 	rs, _ := b.MACD10()
 	rl, _ := b.MACD26()
 
-	b.data.macd = rs - rl
+	b.data.MACD = rs - rl
 
-	b.sig.AddInfo(b.data.macd)
+	b.sig.AddInfo(b.data.MACD)
 
 	if !b.bSignal {
 		if b.sig.Len() >= 9 {
@@ -59,16 +62,15 @@ func (b *Bitory) AddInfo(data float64) {
 		}
 	}
 
-	b.data.signal, _ = b.sig.Avg()
-	phisto := b.data.histo
-	b.data.histo = b.data.macd - b.data.signal
+	b.data.Signal, _ = b.sig.Avg()
+	phisto := b.data.Histo
+	b.data.Histo = b.data.MACD - b.data.Signal
 	b.data.Price = data
 
-	b.curve = b.data.histo - phisto
-	b.data.curve = b.curve
+	b.curve = b.data.Histo - phisto
+	b.data.Curve = b.curve
 
 	fmt.Printf("[%.f] ", data)
-
 }
 
 func (b *Bitory) MACD10() (float64, bool) {
@@ -86,9 +88,9 @@ func (b *Bitory) MACDSignal() (float64, bool) {
 func (b *Bitory) Print() {
 	if b.bMACD {
 		if b.bSignal {
-			fmt.Printf("MACD: %.3f, Signal : %.3f, Histo: %.3f, C:%.3f\n", b.data.macd, b.data.signal, b.data.histo, b.curve)
+			fmt.Printf("MACD: %.3f, Signal : %.3f, Histo: %.3f, C:%.3f\n", b.data.MACD, b.data.Signal, b.data.Histo, b.curve)
 		} else {
-			fmt.Printf("MACD: %.3f, Signal : %.3f,\n", b.data.macd, b.data.signal)
+			fmt.Printf("MACD: %.3f, Signal : %.3f\n", b.data.MACD, b.data.Signal)
 		}
 	}
 }
