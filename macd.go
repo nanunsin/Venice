@@ -11,31 +11,52 @@ type MACDInfo struct {
 }
 
 type Jarvis interface {
-	Update(data MACDInfo)
+	Update(price float64)
+	Print()
 }
 
+// Bitory is core manager
 type Bitory struct {
-	s, l, sig      *RQueue
-	data           MACDInfo
-	curve          float64
-	bMACD, bSignal bool
+	prices *RQueue
+
 	// merchant
-	core  Jarvis
-	bCore bool
+	core    []Jarvis
+	coreCnt int
 }
 
-func NewBitory() *Bitory {
+func NewBitory(interval int) *Bitory {
 	instance := &Bitory{
-		s:       NewRQueue(10),
-		l:       NewRQueue(26),
-		sig:     NewRQueue(9),
-		bMACD:   false,
-		bSignal: false,
-		bCore:   false,
+		prices:  NewRQueue(1000),
+		core:    make([]Jarvis, 10),
+		coreCnt: 0,
 	}
 	return instance
 }
 
+func (b *Bitory) AddCore(core Jarvis) bool {
+	if b.coreCnt == 10 {
+		return false
+	}
+	b.core[b.coreCnt] = core
+	b.coreCnt++
+	return true
+}
+
+func (b *Bitory) AddPrice(price float64) {
+	b.prices.AddInfo(price)
+	for i := 0; i < b.coreCnt; i++ {
+		b.core[i].Update(price)
+	}
+}
+
+func (b *Bitory) Print() {
+	for i := 0; i < b.coreCnt; i++ {
+		b.core[i].Print()
+	}
+	fmt.Println()
+}
+
+/*
 func (b *Bitory) AddInfo(data float64) {
 	b.s.AddInfo(data)
 	b.l.AddInfo(data)
@@ -109,3 +130,4 @@ func (b *Bitory) SetCore(core Jarvis) {
 func (b *Bitory) ResetCore(core Jarvis) {
 	b.bCore = false
 }
+*/

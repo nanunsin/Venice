@@ -2,6 +2,7 @@ package venice
 
 import (
 	"container/ring"
+	"fmt"
 	"sync"
 )
 
@@ -112,4 +113,52 @@ func (rq *RQueue) Avg() (float64, bool) {
 	})
 
 	return sum / (float64)(rq.size), true
+}
+
+type BufferList struct {
+	items []interface{}
+	cnt   int
+}
+
+func NewBufferList(size int) *BufferList {
+	instance := &BufferList{
+		cnt:   0,
+		items: make([]interface{}, size),
+	}
+	return instance
+}
+
+func (bl *BufferList) Add(data interface{}) {
+	if len(bl.items) == bl.cnt {
+		bl.Clear()
+	}
+	bl.items[bl.cnt] = data
+	bl.cnt++
+}
+
+func (bl *BufferList) Clear() {
+	bl.cnt = 0
+}
+
+func (bl *BufferList) Print() {
+	for i := 0; i < bl.cnt; i++ {
+		fmt.Printf("%v", bl.items[i])
+	}
+	fmt.Println()
+}
+
+func (bl *BufferList) AverageFloat() float64 {
+	if bl.cnt == 0 {
+		return 0.0
+	}
+	sum := 0.0
+	for i := 0; i < bl.cnt; i++ {
+		sum += bl.items[i].(float64)
+	}
+
+	return (float64)(sum / float64(bl.cnt))
+}
+
+func (bl *BufferList) IsFull() bool {
+	return bl.cnt == len(bl.items)
 }

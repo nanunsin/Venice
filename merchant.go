@@ -23,7 +23,7 @@ func sumArray(arr []interface{}, div int) (ret float64) {
 }
 
 func main_temp() {
-	bit := NewBitory()
+	bit := NewBitory(1)
 	chPrice := make(chan float64)
 	chStop := make(chan bool)
 
@@ -48,7 +48,7 @@ func main_temp() {
 		case <-chStop:
 			bContinue = false
 		case price := <-chPrice:
-			bit.AddInfo(price)
+			bit.AddPrice(price)
 			bit.Print()
 		}
 	}
