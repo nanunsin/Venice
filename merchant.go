@@ -23,7 +23,7 @@ func sumArray(arr []interface{}, div int) (ret float64) {
 }
 
 func main_temp() {
-	bit := NewBitory(1)
+	bit := NewBitory()
 	chPrice := make(chan float64)
 	chStop := make(chan bool)
 

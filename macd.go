@@ -1,7 +1,5 @@
 package venice
 
-import "fmt"
-
 type MACDInfo struct {
 	MACD   float64
 	Signal float64
@@ -12,21 +10,22 @@ type MACDInfo struct {
 
 type Jarvis interface {
 	Update(price float64)
+	Test(price float64)
 	Print()
 }
 
 // Bitory is core manager
 type Bitory struct {
-	prices *RQueue
+	prices *LimitList
 
 	// merchant
 	core    []Jarvis
 	coreCnt int
 }
 
-func NewBitory(interval int) *Bitory {
+func NewBitory() *Bitory {
 	instance := &Bitory{
-		prices:  NewRQueue(1000),
+		prices:  NewLimitList(50000),
 		core:    make([]Jarvis, 10),
 		coreCnt: 0,
 	}
@@ -37,13 +36,22 @@ func (b *Bitory) AddCore(core Jarvis) bool {
 	if b.coreCnt == 10 {
 		return false
 	}
+	coreID := b.coreCnt
 	b.core[b.coreCnt] = core
 	b.coreCnt++
+
+	if b.prices.Len() > 0 {
+		prices := b.prices.ToSlice()
+		for _, p := range prices {
+			b.core[coreID].Update(p.(float64))
+		}
+	}
+
 	return true
 }
 
 func (b *Bitory) AddPrice(price float64) {
-	b.prices.AddInfo(price)
+	b.prices.Push(price)
 	for i := 0; i < b.coreCnt; i++ {
 		b.core[i].Update(price)
 	}
@@ -53,7 +61,10 @@ func (b *Bitory) Print() {
 	for i := 0; i < b.coreCnt; i++ {
 		b.core[i].Print()
 	}
-	fmt.Println()
+}
+
+func (b *Bitory) Process() {
+	b.Print()
 }
 
 /*

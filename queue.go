@@ -115,6 +115,24 @@ func (rq *RQueue) Avg() (float64, bool) {
 	return sum / (float64)(rq.size), true
 }
 
+func (rq *RQueue) Avg1(data float64) (float64, bool) {
+	if rq.size != rq.cnt {
+		return 0.0, false
+	}
+
+	sum := data
+	bFirst := true
+	rq.queue.Do(func(x interface{}) {
+		if bFirst {
+			bFirst = false
+		} else {
+			sum += x.(float64)
+		}
+	})
+
+	return sum / (float64)(rq.size), true
+}
+
 type BufferList struct {
 	items []interface{}
 	cnt   int
