@@ -7,16 +7,18 @@ import (
 )
 
 type HawkEye struct {
-	bit     *bithumb.Bithumb
-	chStop  chan bool
-	chPrice chan<- float64
+	bit      *bithumb.Bithumb
+	chStop   chan bool
+	chPrice  chan<- float64
+	cointype int
 }
 
-func NewHawkEye(cb chan<- float64) *HawkEye {
+func NewHawkEye(cb chan<- float64, cointype int) *HawkEye {
 	instance := &HawkEye{
-		bit:     bithumb.NewBithumb("test", "sec"),
-		chStop:  make(chan bool),
-		chPrice: cb,
+		bit:      bithumb.NewBithumb("test", "sec"),
+		chStop:   make(chan bool),
+		chPrice:  cb,
+		cointype: cointype,
 	}
 	return instance
 }
@@ -39,7 +41,7 @@ func (h *HawkEye) Scout() {
 
 func (h *HawkEye) sendPrice() {
 	var info bithumb.WMP
-	h.bit.GetETHPrice(&info)
+	h.bit.GetPrice(h.cointype, &info)
 	h.chPrice <- info.Price
 }
 
