@@ -27,7 +27,7 @@ func main_temp() {
 	chPrice := make(chan float64)
 	chStop := make(chan bool)
 
-	eye := NewHawkEye(chPrice)
+	eye := NewHawkEye(chPrice, 1)
 	bContinue := true
 
 	go eye.Scout()
