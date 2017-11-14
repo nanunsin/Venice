@@ -48,3 +48,46 @@ func (h *HawkEye) sendPrice() {
 func (h *HawkEye) Stop() {
 	h.chStop <- true
 }
+
+type EagleEye struct {
+	bit      *bithumb.Bithumb
+	chStop   chan bool
+	chInfo   chan<- bithumb.WMP
+	cointype int
+}
+
+func NewEagleEye(cb chan<- bithumb.WMP, cointype int) *EagleEye {
+	instance := &EagleEye{
+		bit:      bithumb.NewBithumb("test", "sec"),
+		chStop:   make(chan bool),
+		chInfo:   cb,
+		cointype: cointype,
+	}
+	return instance
+}
+
+func (e *EagleEye) Scout() {
+	bContinue := true
+
+	e.sendPrice()
+
+	ticker := time.NewTicker(time.Second * 10)
+	for bContinue {
+		select {
+		case <-ticker.C:
+			e.sendPrice()
+		case <-e.chStop:
+			bContinue = false
+		}
+	}
+}
+
+func (e *EagleEye) sendPrice() {
+	var info bithumb.WMP
+	e.bit.GetPrice(h.cointype, &info)
+	e.chPrice <- info.Price
+}
+
+func (e *EagleEye) Stop() {
+	e.chStop <- true
+}
