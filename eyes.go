@@ -84,8 +84,8 @@ func (e *EagleEye) Scout() {
 
 func (e *EagleEye) sendPrice() {
 	var info bithumb.WMP
-	e.bit.GetPrice(h.cointype, &info)
-	e.chPrice <- info.Price
+	e.bit.GetPrice(e.cointype, &info)
+	e.chInfo <- info
 }
 
 func (e *EagleEye) Stop() {
