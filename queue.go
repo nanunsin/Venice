@@ -177,6 +177,19 @@ func (bl *BufferList) AverageFloat() float64 {
 	return (float64)(sum / float64(bl.cnt))
 }
 
+func (bl *BufferList) AverageInt64() float64 {
+	if bl.cnt == 0 {
+		return 0.0
+	}
+
+	var sum int64
+	for i := 0; i < bl.cnt; i++ {
+		sum += bl.items[i].(int64)
+	}
+
+	return (float64)(sum / int64(bl.cnt))
+}
+
 func (bl *BufferList) IsFull() bool {
 	return bl.cnt == len(bl.items)
 }
