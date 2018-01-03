@@ -9,11 +9,11 @@ import (
 type HawkEye struct {
 	bit      *bithumb.Bithumb
 	chStop   chan bool
-	chPrice  chan<- float64
-	cointype int
+	chPrice  chan<- int64
+	cointype string
 }
 
-func NewHawkEye(cb chan<- float64, cointype int) *HawkEye {
+func NewHawkEye(cb chan<- int64, cointype string) *HawkEye {
 	instance := &HawkEye{
 		bit:      bithumb.NewBithumb("test", "sec"),
 		chStop:   make(chan bool),
@@ -40,7 +40,7 @@ func (h *HawkEye) Scout() {
 }
 
 func (h *HawkEye) sendPrice() {
-	var info bithumb.WMP
+	var info bithumb.TickerInfo
 	h.bit.GetPrice(h.cointype, &info)
 	h.chPrice <- info.Price
 }
@@ -52,11 +52,11 @@ func (h *HawkEye) Stop() {
 type EagleEye struct {
 	bit      *bithumb.Bithumb
 	chStop   chan bool
-	chInfo   chan<- bithumb.WMP
-	cointype int
+	chInfo   chan<- bithumb.TickerInfo
+	cointype string
 }
 
-func NewEagleEye(cb chan<- bithumb.WMP, cointype int) *EagleEye {
+func NewEagleEye(cb chan<- bithumb.TickerInfo, cointype string) *EagleEye {
 	instance := &EagleEye{
 		bit:      bithumb.NewBithumb("test", "sec"),
 		chStop:   make(chan bool),
@@ -83,7 +83,7 @@ func (e *EagleEye) Scout() {
 }
 
 func (e *EagleEye) sendPrice() {
-	var info bithumb.WMP
+	var info bithumb.TickerInfo
 	e.bit.GetPrice(e.cointype, &info)
 	e.chInfo <- info
 }
