@@ -9,8 +9,8 @@ type MACDInfo struct {
 }
 
 type Jarvis interface {
-	Update(price float64)
-	Test(price float64)
+	Update(price int64)
+	Test(price int64)
 	Print()
 }
 
@@ -43,14 +43,14 @@ func (b *Bitory) AddCore(core Jarvis) bool {
 	if b.prices.Len() > 0 {
 		prices := b.prices.ToSlice()
 		for _, p := range prices {
-			b.core[coreID].Update(p.(float64))
+			b.core[coreID].Update(p.(int64))
 		}
 	}
 
 	return true
 }
 
-func (b *Bitory) AddPrice(price float64) {
+func (b *Bitory) AddPrice(price int64) {
 	b.prices.Push(price)
 	for i := 0; i < b.coreCnt; i++ {
 		b.core[i].Update(price)

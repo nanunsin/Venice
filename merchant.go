@@ -24,10 +24,10 @@ func sumArray(arr []interface{}, div int) (ret float64) {
 
 func main_temp() {
 	bit := NewBitory()
-	chPrice := make(chan float64)
+	chPrice := make(chan int64)
 	chStop := make(chan bool)
 
-	eye := NewHawkEye(chPrice, 1)
+	eye := NewHawkEye(chPrice, "BTC")
 	bContinue := true
 
 	go eye.Scout()
